@@ -1,19 +1,3 @@
-# Copyright 2019 DeepMind Technologies Limited. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
-"""A simple double-DQN agent trained to play BSuite's Catch env."""
-
 import collections
 import random
 from absl import app
@@ -62,34 +46,14 @@ def build_network(num_actions: int) -> hk.Transformed:
 
   return hk.without_apply_rng(hk.transform(q))
 
-
-class ReplayBuffer(object):
-  """A simple Python replay buffer."""
-
-  def __init__(self, capacity):
-    self._prev = None
-    self._action = None
-    self._latest = None
-    self.buffer = collections.deque(maxlen=capacity)
-
-  def push(self, env_output, action):
-    self._prev = self._latest
-    self._action = action
-    self._latest = env_output
-
-    if action is not None:
-      self.buffer.append(
-          (self._prev.observation, self._action, self._latest.reward,
-           self._latest.discount, self._latest.observation))
-
-  def sample(self, batch_size):
-    obs_tm1, a_tm1, r_t, discount_t, obs_t = zip(
-        *random.sample(self.buffer, batch_size))
-    return (np.stack(obs_tm1), np.asarray(a_tm1), np.asarray(r_t),
-            np.asarray(discount_t) * FLAGS.discount_factor, np.stack(obs_t))
-
-  def is_ready(self, batch_size):
-    return batch_size <= len(self.buffer)
+class ReinforceAgent(hk.Nodule):
+    def __init__(self, num_actions) -> None:
+        super().__init__()
+        self.net = hk.Sequential([
+            hk.Flatten(),
+            nets.MLP([FLAGS.hidden_units, num_actions])
+        ])
+        
 
 
 class DQN:
